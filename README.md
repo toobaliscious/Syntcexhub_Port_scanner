@@ -30,6 +30,8 @@ This tool simulates real-world reconnaissance techniques used in cybersecurity a
 ---
 
 ▶️ Usage
+
+
 🔹 CLI Mode
 python port_scanner.py <target_ip> <start_port> <end_port>
 
@@ -53,11 +55,13 @@ Start Port
 End Port
 
 📂 Output
+
 Results are displayed in the terminal with color-coded output
 All scan results are saved automatically in:
 scan_results.txt
 
 📊 Sample Output
+
 [OPEN] Port 22 | SSH-2.0-OpenSSH
 [CLOSED] Port 80
 [OPEN] Port 443 | No banner
