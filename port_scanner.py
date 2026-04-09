@@ -1,12 +1,20 @@
 import socket
 import threading
 import argparse
-import sys
 from datetime import datetime
 from colorama import Fore, init
+import os
 
-# Initialize colors
+# Initialize colorama
 init(autoreset=True)
+
+# -------------------------------
+# Global storage
+# -------------------------------
+open_ports = []
+closed_ports = []
+
+lock = threading.Lock()
 
 # -------------------------------
 # Banner grabbing
@@ -16,7 +24,7 @@ def grab_banner(ip, port):
         s = socket.socket()
         s.settimeout(2)
         s.connect((ip, port))
-        banner = s.recv(1024).decode().strip()
+        banner = s.recv(1024).decode(errors="ignore").strip()
         s.close()
         return banner if banner else "No banner"
     except:
@@ -35,10 +43,12 @@ def scan_port(ip, port, timeout):
         if result == 0:
             banner = grab_banner(ip, port)
             print(Fore.GREEN + f"[OPEN] Port {port} | {banner}")
-            open_ports.append((port, banner))
+            with lock:
+                open_ports.append((port, banner))
         else:
             print(Fore.RED + f"[CLOSED] Port {port}")
-            closed_ports.append(port)
+            with lock:
+                closed_ports.append(port)
 
         s.close()
 
@@ -46,19 +56,19 @@ def scan_port(ip, port, timeout):
         print(Fore.YELLOW + f"[ERROR] Port {port}: {e}")
 
 # -------------------------------
-# Get arguments OR interactive input
+# Argument parser
 # -------------------------------
 parser = argparse.ArgumentParser(description="Advanced Port Scanner")
 
 parser.add_argument("target", nargs="?", help="Target IP")
 parser.add_argument("start_port", nargs="?", type=int, help="Start port")
 parser.add_argument("end_port", nargs="?", type=int, help="End port")
-parser.add_argument("--timeout", type=float, default=1, help="Timeout")
+parser.add_argument("--timeout", type=float, default=1, help="Timeout per port")
 
 args = parser.parse_args()
 
 # -------------------------------
-# Interactive fallback
+# Input mode
 # -------------------------------
 if not args.target:
     print(Fore.CYAN + "\n=== INTERACTIVE MODE ===")
@@ -71,12 +81,6 @@ else:
     start_port = args.start_port
     end_port = args.end_port
     timeout = args.timeout
-
-# -------------------------------
-# Storage
-# -------------------------------
-open_ports = []
-closed_ports = []
 
 # -------------------------------
 # Start scanning
@@ -108,14 +112,21 @@ print(Fore.GREEN + f"Open Ports: {len(open_ports)}")
 print(Fore.RED + f"Closed Ports: {len(closed_ports)}")
 
 # -------------------------------
-# Save results
+# Save results to file
 # -------------------------------
-with open("scan_results.txt", "w") as file:
+filepath = r"C:\Syncexhub\scan_results.txt"
+
+with open(filepath, "w", encoding="utf-8") as file:
+    file.write("===== PORT SCAN REPORT =====\n\n")
     file.write(f"Target: {target}\n")
-    file.write(f"Time: {start_time} - {end_time}\n\n")
+    file.write(f"Scan Time: {start_time} - {end_time}\n\n")
 
     file.write("Open Ports:\n")
     for port, banner in open_ports:
         file.write(f"{port} - {banner}\n")
 
-print(Fore.CYAN + "\nResults saved to scan_results.txt")
+    file.write("\nClosed Ports:\n")
+    for port in closed_ports:
+        file.write(f"{port}\n")
+
+print(Fore.CYAN + f"\nResults successfully saved to: {filepath}")
